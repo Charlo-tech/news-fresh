@@ -1,43 +1,27 @@
-import { useState } from "react";
-import { TextField, Button, Container, Typography } from "@mui/material";
+export default async function handler(req, res) {
+    if (req.method === 'POST') {
+        const { query } = req.body;
 
+        try {
+            const geminiResponse = await fetch('https://api.gemini.com/v1/chat', {
+                method: 'POST',
+                headers: {
+                    'content-Type': 'application/json',
+                    'Authorization': 'Bearer ${process.env.GEMINI_API_KEY'}
+                },
+                body: JSON.stringify({
+                    prompt: query,
+                    model: 'chatbot-model-id'
+                })
+            });
 
-const ChatBot = () => {
-    const [input, setInput] = useState('');
-    const [response, setResponse] = useState('');
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        const res = await fetch('/api/chatbot', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query: input }),
-        });
-        const data= await res.json();
-        setResponse(data.answer);
-    };
-
-    return (
-        <Container>
-            <Form onSubmit={handleSubmit}>
-                <TextField
-                    label="Ask way!"
-                    variant="outlined"
-                    fullWidth value={input}
-                    onChange={(e) =>setInput(e.target.value)}
-                    style={{ marginBottom: '1rem' }} />
-
-                <Button variant="contained" color="primary" type="submit">
-                    Let's Go!
-                </Button>
-            </Form>
-            {response && (
-                <Typography variant="body1" style={{ marginTop: '1rem' }}>
-                    Response: {response}
-                </Typography>
-            )}
-        </Container>
-    );
-};
-
-export default Chatbot;
+            const data = await geminiResponse.json();
+            res.status(200).json({ answer: data.response });
+        } catch (error) {
+            console.error('Problem querying gemini', error),
+            res.status(500).json({ error: 'Request process failed' });
+        }
+    } else {
+        res.status(405).json({ message: 'Method not allowed' });
+    }
+}
